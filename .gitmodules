@@ -1,0 +1,6 @@
+[submodule "external/cldr"]
+	path = modules/data/external/cldr
+	url = git@github.com:fluidsonic/cldr.git
+[submodule "external/icu"]
+	path = modules/data/external/icu
+	url = git@github.com:fluidsonic/icu.git

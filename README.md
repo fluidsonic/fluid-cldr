@@ -18,7 +18,7 @@ Installation
 `build.gradle.kts`:
 ```kotlin
 dependencies {
-    implementation("io.fluidsonic.cldr:fluid-cldr:0.9.0-37")
+    implementation("io.fluidsonic.cldr:fluid-cldr:0.9.1-37")
 }
 ```
 

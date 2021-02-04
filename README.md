@@ -19,7 +19,8 @@ Installation
 
 ```kotlin
 dependencies {
-    implementation("io.fluidsonic.cldr:fluid-cldr:0.9.1-37")
+	implementation("io.fluidsonic.cldr:fluid-cldr:0.9.2-37-kotlin-1.5") // Kotlin 1.4.30 (language version 1.5)
+	implementation("io.fluidsonic.cldr:fluid-cldr:0.9.1-37")            // Kotlin 1.4.*
 }
 ```
 

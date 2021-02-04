@@ -1,4 +1,5 @@
 import io.fluidsonic.gradle.*
+import org.jetbrains.kotlin.gradle.plugin.*
 
 plugins {
 	`java-library`
@@ -6,7 +7,7 @@ plugins {
 
 fluidLibraryModule(description = "CLDR data used by fluid-cldr") {
 	targets {
-		jvmJdk8 {
+		jvm {
 			withJava()
 
 			dependencies {
@@ -19,7 +20,7 @@ fluidLibraryModule(description = "CLDR data used by fluid-cldr") {
 			}
 
 			custom {
-				compilations.getByName(org.jetbrains.kotlin.gradle.plugin.KotlinCompilation.MAIN_COMPILATION_NAME) {
+				compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
 					defaultSourceSet.kotlin.setUp()
 
 					tasks.named<Copy>(processResourcesTaskName) {

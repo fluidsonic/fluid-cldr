@@ -1,16 +1,10 @@
 import io.fluidsonic.gradle.*
 
 plugins {
-	id("io.fluidsonic.gradle") version "1.1.18"
+	id("io.fluidsonic.gradle") version "1.1.22"
 }
 
-fluidLibrary(name = "cldr", version = "0.9.2-37") {
-	allModules {
-		language {
-			version("1.4")
-		}
-	}
-}
+fluidLibrary(name = "cldr", version = "0.9.2-37")
 
 fluidLibraryModule(description = "Kotlin library for making CLDR data more easily accessible") {
 	targets {

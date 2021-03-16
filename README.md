@@ -19,7 +19,7 @@ Installation
 
 ```kotlin
 dependencies {
-	implementation("io.fluidsonic.cldr:fluid-cldr:0.9.2-37")
+	implementation("io.fluidsonic.cldr:fluid-cldr:0.9.3-37")
 }
 ```
 

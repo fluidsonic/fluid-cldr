@@ -1,33 +1,46 @@
 import io.fluidsonic.gradle.*
-import org.jetbrains.kotlin.gradle.plugin.*
-
-plugins {
-	`java-library`
-}
+import org.gradle.api.tasks.compile.JavaCompile
 
 fluidLibraryModule(description = "CLDR data used by fluid-cldr") {
 	targets {
 		jvm {
-			withJava()
-
 			dependencies {
-				implementation("com.google.guava:guava:29.0-jre")
-				implementation("com.google.code.gson:gson:2.8.5")
+				implementation("com.google.code.gson:gson:2.13.1")
+				implementation("com.google.guava:guava:33.4.8-jre")
 				implementation("com.google.myanmartools:myanmar-tools:1.1.1")
-				implementation("org.apache.ant:ant:1.10.8")
+				implementation("com.vdurmont:semver4j:3.1.0")
+				implementation("org.apache.ant:ant:1.10.15")
+				implementation("org.relaxng:trang:20241231")
 
-				api("com.ibm.icu:icu4j:67.1")
+				compileOnly("com.google.code.findbugs:jsr305:3.0.2")
+
+				api("com.ibm.icu:icu4j:78.3")
 			}
 
 			custom {
-				compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
-					defaultSourceSet.kotlin.setUp()
+				project.tasks.withType<JavaCompile>().configureEach {
+					sourceCompatibility = "21"
+					targetCompatibility = "21"
+				}
+
+				compilations.getByName("main") {
+					val cldrSourceDir = "external/cldr/tools/cldr-code/src/main/java"
+					val sourceExcludes = listOf(
+						".settings",
+						"libs",
+						"org/unicode/cldr/util/data",
+					)
+
+					defaultSourceSet.kotlin.srcDir(cldrSourceDir)
+					defaultSourceSet.kotlin.exclude(sourceExcludes)
+
+					compileJavaTaskProvider!!.configure {
+						source(project.fileTree(cldrSourceDir).matching { exclude(sourceExcludes) })
+					}
 
 					tasks.named<Copy>(processResourcesTaskName) {
-						from("external/cldr/tools/java/org/unicode/cldr/util") {
-							include("data/**")
-
-							into("org/unicode/cldr/util")
+						from("external/cldr/tools/cldr-code/src/main/resources") {
+							include("org/unicode/cldr/**")
 						}
 
 						from("external/cldr") {
@@ -40,38 +53,5 @@ fluidLibraryModule(description = "CLDR data used by fluid-cldr") {
 				}
 			}
 		}
-	}
-}
-
-sourceSets {
-	main {
-		java.setUp()
-	}
-}
-
-
-// FIXME Why do we have to call this twice? One of the two modules will fail building depending on where we set it up.
-fun SourceDirectorySet.setUp() {
-	val filesToExclude: Set<File> = listOf(
-		"external/icu/icu4j/main/tests/framework/src/com/ibm/icu/dev/test/AbstractTestLog.java",
-		"external/icu/icu4j/main/tests/framework/src/com/ibm/icu/dev/test/TestBoilerplate.java",
-		"external/icu/icu4j/main/tests/framework/src/com/ibm/icu/dev/test/TestFmwk.java",
-		"external/icu/icu4j/main/tests/framework/src/com/ibm/icu/dev/test/TestLog.java",
-		"external/icu/icu4j/main/tests/framework/src/com/ibm/icu/dev/test/TestUtil.java",
-		"external/icu/icu4j/main/tests/framework/src/com/ibm/icu/dev/test/UTF16Util.java"
-	).mapTo(hashSetOf(), ::file)
-
-	srcDirs(listOf(
-		"external/cldr/tools/java",
-		"external/icu/icu4j/main/tests/framework/src/",
-		"external/icu/icu4j/tools/misc/"
-	))
-	exclude(
-		".settings",
-		"libs",
-		"org/unicode/cldr/util/data"
-	)
-	exclude { element ->
-		filesToExclude.contains(element.file)
 	}
 }

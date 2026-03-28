@@ -12,3 +12,4 @@
 build
 out
 .claude/worktrees/
+.playwright-mcp/

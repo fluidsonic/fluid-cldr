@@ -5,63 +5,72 @@ import java.nio.file.*
 import org.unicode.cldr.util.*
 
 
+/**
+ * Handles extraction and caching of CLDR data from embedded resources.
+ */
 public object CldrData {
 
 	private val resourceClass = CLDRFile::class.java
-	private val commonResourcesPath = Paths.get(resourceClass.`package`.name.replace('.', '/'), "common")
 
-	public const val version: String = "37"
+	/**
+	 * The CLDR data version included in this build.
+	 */
+	public const val version: String = "48"
 
 
+	/**
+	 * Extracts CLDR data to a temporary directory and returns the path.
+	 *
+	 * If the data has already been extracted for the current version, the cached directory is returned.
+	 * Thread-safe: concurrent callers will wait for the first export to complete.
+	 */
 	public fun export(): Path {
 		val cldrDirectory = Paths.get(System.getProperty("java.io.tmpdir")).resolve("fluid-cldr")
 		Files.createDirectories(cldrDirectory)
 
 		val versionDirectory = cldrDirectory.resolve(version)
 
-		if (Files.isDirectory(versionDirectory)) {
-			println("Exported CLDR data found at $versionDirectory…")
-
+		if (Files.isDirectory(versionDirectory))
 			return versionDirectory
-		}
 
-		val resourcesLocation = resourceClass.protectionDomain.codeSource.location?.toURI() ?: error("Cannot find resources.")
-		val resourcesPath = Paths.get(resourcesLocation)
-		val temporaryDirectory = Files.createTempDirectory("cldr-export-")
+		synchronized(this) {
+			if (Files.isDirectory(versionDirectory))
+				return versionDirectory
 
-		println("Exporting CLDR data from $resourcesLocation to $temporaryDirectory…")
-
-		val fileSystem: FileSystem?
-		val basePath = when (Files.isDirectory(resourcesPath)) {
-			true -> {
-				fileSystem = null
-				resourcesPath.resolve(commonResourcesPath)
+			val commonResourceUrl = requireNotNull(resourceClass.getResource("common")) {
+				"Cannot locate CLDR resource files."
 			}
-			false -> {
-				fileSystem = FileSystems.newFileSystem(URI.create("jar:$resourcesLocation"), emptyMap<String, Any?>())
-				fileSystem.getPath(commonResourcesPath.toString())
+			val temporaryDirectory = Files.createTempDirectory("cldr-export-")
+
+			val fileSystem: FileSystem?
+			val basePath = when (commonResourceUrl.protocol) {
+				"file" -> {
+					fileSystem = null
+					Paths.get(commonResourceUrl.toURI())
+				}
+				"jar" -> {
+					val jarUri = URI.create(commonResourceUrl.toString().substringBefore("!"))
+					fileSystem = FileSystems.newFileSystem(jarUri, emptyMap<String, Any?>())
+					val resourcePath = commonResourceUrl.toString().substringAfter("!")
+					fileSystem.getPath(resourcePath)
+				}
+				else -> error("Unsupported resource protocol: ${commonResourceUrl.protocol}")
+			}
+
+			fileSystem.use {
+				exportDirectory(source = basePath, destination = temporaryDirectory.resolve("common"))
+				Files.move(temporaryDirectory, versionDirectory)
 			}
 		}
-
-		fileSystem.use {
-			exportDirectory(path = basePath, destination = temporaryDirectory.resolve("common"))
-
-			println("Moving CLDR data to $versionDirectory…")
-
-			Files.move(temporaryDirectory, versionDirectory)
-		}
-
-		println("CLDR data export completed.")
 
 		return versionDirectory
 	}
 
 
-	@Suppress("NAME_SHADOWING")
-	private fun exportDirectory(path: Path, destination: Path) {
+	private fun exportDirectory(source: Path, destination: Path) {
 		Files.createDirectories(destination)
 
-		Files.list(path).use { files ->
+		Files.list(source).use { files ->
 			files.forEach { childPath ->
 				val childName = childPath.fileName.toString()
 				val childDestination = destination.resolve(childName)
@@ -69,7 +78,7 @@ public object CldrData {
 				if (childName.contains('.'))
 					exportFile(path = childPath, destination = childDestination)
 				else
-					exportDirectory(path = childPath, destination = childDestination)
+					exportDirectory(source = childPath, destination = childDestination)
 			}
 		}
 	}
